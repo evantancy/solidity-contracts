@@ -100,9 +100,9 @@ contract RandomWords is ERC721 {
         );
         for (uint16 i = 0; i < _quantity; ++i) {
             _safeMint(msg.sender, nextTokenId);
-            nextTokenId += 1;
-            currentSupply += 1;
-            ownerToBalance[msg.sender] += 1;
+            nextTokenId++;
+            currentSupply++;
+            ownerToBalance[msg.sender]++;
         }
     }
 
