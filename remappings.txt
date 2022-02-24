@@ -2,3 +2,5 @@ openzeppelin/=lib/openzeppelin-contracts/
 ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
 weird-erc20/=lib/solmate/lib/weird-erc20/src/
+base64/=lib/base64/
+ERC721A/=lib/ERC721A/contracts/
