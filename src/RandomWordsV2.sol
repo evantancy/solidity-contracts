@@ -13,7 +13,7 @@ contract RandomWordsV2 is ERC721URIStorage {
     uint16 public MAX_HOLD = 333;
     uint8 public MAX_TX = 50;
     uint16 private nextTokenId = 0;
-    uint16 private currentSupply = 0;
+    uint16 public currentSupply = 0;
 
     struct Words {
         string first;
@@ -21,8 +21,6 @@ contract RandomWordsV2 is ERC721URIStorage {
         string third;
         uint8[3] bgColor;
     }
-
-    mapping(address => uint16) ownerToBalance;
 
     string[] private firstWords = [
         "Illustrious",
@@ -95,20 +93,15 @@ contract RandomWordsV2 is ERC721URIStorage {
             "Mint: quantity exceeds MAX_SUPPLY"
         );
         require(
-            ownerToBalance[msg.sender] + _quantity <= MAX_HOLD,
+            uint16(balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
             "Mint: Each holder can only hold 333"
         );
         for (uint16 i = 0; i < _quantity; ++i) {
             _safeMint(msg.sender, nextTokenId);
             _setTokenURI(nextTokenId, _createFullMetadata(nextTokenId));
-            nextTokenId += 1;
-            currentSupply += 1;
-            ownerToBalance[msg.sender] += 1;
+            nextTokenId++;
+            currentSupply++;
         }
-    }
-
-    function getCurrentSupply() public view returns (uint16) {
-        return currentSupply;
     }
 
     function _createRandom(uint16 _tokenId)
@@ -121,10 +114,10 @@ contract RandomWordsV2 is ERC721URIStorage {
         );
 
         uint8[4] memory randomIndices;
-        randomIndices[0] = uint8(pseudoRandom >> 1 % firstWords.length);
-        randomIndices[1] = uint8(pseudoRandom >> 2 % secondWords.length);
-        randomIndices[2] = uint8(pseudoRandom >> 3 % thirdWords.length);
-        randomIndices[3] = uint8(pseudoRandom >> 4 % bgColors.length);
+        randomIndices[0] = uint8((pseudoRandom >> 1) % firstWords.length);
+        randomIndices[1] = uint8((pseudoRandom >> 2) % secondWords.length);
+        randomIndices[2] = uint8((pseudoRandom >> 3) % thirdWords.length);
+        randomIndices[3] = uint8((pseudoRandom >> 4) % bgColors.length);
 
         return randomIndices;
     }

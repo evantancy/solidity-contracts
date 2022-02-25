@@ -22,8 +22,6 @@ contract RandomWords is ERC721 {
         uint8[3] bgColor;
     }
 
-    mapping(address => uint16) ownerToBalance;
-
     string[] private firstWords = [
         "Illustrious",
         "Aberrant",
@@ -95,14 +93,13 @@ contract RandomWords is ERC721 {
             "Mint: quantity exceeds MAX_SUPPLY"
         );
         require(
-            ownerToBalance[msg.sender] + _quantity <= MAX_HOLD,
+            uint16(balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
             "Mint: Each holder can only hold 333"
         );
         for (uint16 i = 0; i < _quantity; ++i) {
             _safeMint(msg.sender, nextTokenId);
             nextTokenId++;
             currentSupply++;
-            ownerToBalance[msg.sender]++;
         }
     }
 
@@ -116,10 +113,10 @@ contract RandomWords is ERC721 {
         );
 
         uint8[4] memory randomIndices;
-        randomIndices[0] = uint8(pseudoRandom >> 1 % firstWords.length);
-        randomIndices[1] = uint8(pseudoRandom >> 2 % secondWords.length);
-        randomIndices[2] = uint8(pseudoRandom >> 3 % thirdWords.length);
-        randomIndices[3] = uint8(pseudoRandom >> 4 % bgColors.length);
+        randomIndices[0] = uint8((pseudoRandom >> 1) % firstWords.length);
+        randomIndices[1] = uint8((pseudoRandom >> 2) % secondWords.length);
+        randomIndices[2] = uint8((pseudoRandom >> 3) % thirdWords.length);
+        randomIndices[3] = uint8((pseudoRandom >> 4) % bgColors.length);
 
         return randomIndices;
     }
