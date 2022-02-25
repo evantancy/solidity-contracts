@@ -1,3 +1,5 @@
+/// @notice This contract is used to compare functions `_setTokenURI()` and overriden `tokenURI()` in minting and storing data on-chain. You should probably never use `_setTokenURI()` due high gas consumption.
+
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
