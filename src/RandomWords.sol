@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import "openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "base64/base64.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "base64-sol/base64.sol";
 import "./Strings.sol";
 
 contract RandomWords is ERC721 {
