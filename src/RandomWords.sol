@@ -13,7 +13,7 @@ contract RandomWords is ERC721 {
     uint16 public MAX_HOLD = 333;
     uint8 public MAX_TX = 50;
     uint16 private nextTokenId = 0;
-    uint16 private currentSupply = 0;
+    uint16 public currentSupply = 0;
 
     struct Words {
         string first;
@@ -104,10 +104,6 @@ contract RandomWords is ERC721 {
             currentSupply++;
             ownerToBalance[msg.sender]++;
         }
-    }
-
-    function getCurrentSupply() public view returns (uint16) {
-        return currentSupply;
     }
 
     function _createRandom(uint16 _tokenId)
