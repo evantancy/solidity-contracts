@@ -200,9 +200,14 @@ contract RandomWords is ERC721 {
         return metadata;
     }
 
-    function tokenURI(uint16 _tokenId) public view returns (string memory) {
+    function tokenURI(uint256 _tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
         require(_exists(_tokenId));
 
-        return _createFullMetadata(_tokenId);
+        return _createFullMetadata(uint16(_tokenId));
     }
 }
