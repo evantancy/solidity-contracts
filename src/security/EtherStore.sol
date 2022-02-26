@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "./ReentrancyGuard.sol";
+import "../utils/ReentrancyGuard.sol";
 
 contract EtherStore is ReentrancyGuard {
     mapping(address => uint256) public balances;

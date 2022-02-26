@@ -5,7 +5,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "base64-sol/base64.sol";
-import "./Strings.sol";
+import "./utils/Strings.sol";
 
 contract RandomWordsV2 is ERC721URIStorage {
     using Strings8 for uint8;
