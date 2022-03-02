@@ -3,24 +3,26 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "../utils/Ownership.sol";
 import "../utils/Roles.sol";
+import "../utils/ReentrancyGuard.sol";
 
 interface RandomWordsInterface {
     function balanceOf(address owner) external view returns (uint256 balance);
 }
 
-contract WordDAO is Ownership, Roles {
+contract WordDAO is Ownership, Roles, ReentrancyGuard {
+    /*///////////////////////////////////////////////////////////////
+                                STATE VARS
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev deployed token address to query balances
     address tokenAddress;
     RandomWordsInterface rw;
+    uint32 private nextPollId = 0;
+    uint256 private votingPeriod = 10 days;
 
     constructor() {}
 
-    modifier onlyHolder(address _address) {
-        require(rw.balanceOf(_address) > 0);
-        _;
-    }
-
     event ContentAdded(bytes32 indexed contentId, string contentUri);
-
     event CategoryAdded(bytes32 indexed categoryId, string category);
 
     struct Poll {
@@ -34,7 +36,7 @@ contract WordDAO is Ownership, Roles {
     }
 
     event PollStarted(
-        bytes32 indexed pollId,
+        uint32 indexed pollId,
         address indexed contributor,
         bytes32 contentId,
         bytes32 categoryId,
@@ -43,20 +45,35 @@ contract WordDAO is Ownership, Roles {
 
     event VoteCast(
         address indexed voter,
-        bytes32 indexed pollId,
+        uint32 indexed pollId,
         bool sentiment
     );
 
     mapping(bytes32 => string) contentRegistry;
-    mapping(bytes32 => Poll) pollRegistry;
-    mapping(address => mapping(bytes32 => bool)) voterRegistry;
+    mapping(uint32 => Poll) pollRegistry;
+    mapping(address => mapping(uint32 => bool)) voterRegistry;
     mapping(bytes32 => string) categoryRegistry;
 
-    function getVotingPower(address _address) public view returns (uint256) {
-        return rw.balanceOf(_address);
+    /*///////////////////////////////////////////////////////////////
+                                MODIFIERS
+    ///////////////////////////////////////////////////////////////*/
+
+    modifier onlyHolder() {
+        require(rw.balanceOf(msg.sender) > 0);
+        _;
     }
 
-    function setTokenAddress(address _address) public onlyOwner onlyAdmin {
+    /*///////////////////////////////////////////////////////////////
+                                LOGIC
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Query token hodlers
+    function getVotingPower(address _address) private view returns (uint256) {
+        return rw.balanceOf(_address) > 0 ? 1 : 0;
+    }
+
+    /// @dev Use method instead of constructor parameter
+    function setTokenAddress(address _address) external onlyCTO {
         tokenAddress = _address;
         rw = RandomWordsInterface(tokenAddress);
     }
@@ -67,26 +84,27 @@ contract WordDAO is Ownership, Roles {
         bytes32 _parentId
     ) external {
         bytes32 contentId = keccak256(abi.encode(bytes(_contentUri)));
-        bytes32 pollId = keccak256(
-            abi.encodePacked(msg.sender, contentId, _parentId)
-        );
+        uint32 pollId = nextPollId;
 
         contentRegistry[contentId] = _contentUri;
 
         pollRegistry[pollId].contributor = msg.sender;
-        pollRegistry[pollId].deadline = block.number + 10 days;
+        pollRegistry[pollId].deadline = block.number + votingPeriod;
         pollRegistry[pollId].contentId = contentId;
         pollRegistry[pollId].categoryId = _categoryId;
         pollRegistry[pollId].parentId = _parentId;
 
         emit ContentAdded(contentId, _contentUri);
         emit PollStarted(pollId, msg.sender, contentId, _categoryId, _parentId);
+        nextPollId++;
     }
 
-    function _vote(bytes32 _pollId, bool favor) internal onlyNonAdmin {
+    function _vote(uint32 _pollId, bool favor)
+        internal
+        onlyNonUpper
+        onlyHolder
+    {
         address voter = msg.sender;
-        // bytes32 category = pollRegistry[_pollId].categoryId;
-        // address contributor = pollRegistry[_pollId].contributor;
 
         require(
             pollRegistry[_pollId].contributor != voter,
@@ -101,10 +119,12 @@ contract WordDAO is Ownership, Roles {
             "Vote: deadline has passed"
         );
 
+        /// @dev 1 address == 1 vote
+        uint32 votingPower = uint32(getVotingPower(voter));
         if (favor) {
-            pollRegistry[_pollId].positive += 1;
+            pollRegistry[_pollId].positive += votingPower;
         } else {
-            pollRegistry[_pollId].negative += 1;
+            pollRegistry[_pollId].negative += votingPower;
         }
 
         voterRegistry[voter][_pollId] = true;
@@ -112,15 +132,15 @@ contract WordDAO is Ownership, Roles {
         emit VoteCast(voter, _pollId, favor);
     }
 
-    function voteUp(bytes32 _pollId) external {
+    function voteUp(uint32 _pollId) external onlyHolder {
         _vote(_pollId, true);
     }
 
-    function voteDown(bytes32 _pollId) external {
+    function voteDown(uint32 _pollId) external onlyHolder {
         _vote(_pollId, false);
     }
 
-    function addCategory(string calldata _category) external {
+    function addCategory(string calldata _category) external onlyAdmin {
         bytes32 _categoryId = keccak256(
             abi.encode(msg.sender, _category, block.timestamp)
         );
@@ -145,7 +165,13 @@ contract WordDAO is Ownership, Roles {
         return categoryRegistry[_categoryId];
     }
 
-    function getPoll(bytes32 _pollId) public view returns (Poll memory) {
+    function getPoll(uint32 _pollId) public view returns (Poll memory) {
         return pollRegistry[_pollId];
+    }
+
+    function withdraw(uint256 _amount) external onlyCFO noReentrant {
+        require(address(this).balance > 0);
+        (bool status, ) = msg.sender.call{value: _amount}("");
+        require(status, "Failed to send Ether");
     }
 }
