@@ -52,6 +52,10 @@ contract WordDAO is Ownership, Roles {
     mapping(address => mapping(bytes32 => bool)) voterRegistry;
     mapping(bytes32 => string) categoryRegistry;
 
+    function getVotingPower(address _address) public view returns (uint256) {
+        return rw.balanceOf(_address);
+    }
+
     function setTokenAddress(address _address) public onlyOwner onlyAdmin {
         tokenAddress = _address;
         rw = RandomWordsInterface(tokenAddress);
