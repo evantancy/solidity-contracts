@@ -2,10 +2,32 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 contract Roles {
+    /// @dev ceo only has access to role appointments, no access to funds, no access to mint/drop/reveal functionality
+    address private ceo;
+    /// @dev cfo no access to role appointments, only access to funds, no access to mint/drop/reveal functionality
+    address private cfo;
+    /// @dev cfo no access to role appointments, no access to funds, only access to mint/drop/reveal functionality
+    address private cto;
+
     mapping(address => bool) admins;
 
     constructor() {
-        admins[msg.sender] = true;
+        ceo = msg.sender;
+    }
+
+    modifier onlyCEO() {
+        require(msg.sender == ceo);
+        _;
+    }
+
+    modifier onlyCFO() {
+        require(msg.sender == cfo);
+        _;
+    }
+
+    modifier onlyCTO() {
+        require(msg.sender == cto);
+        _;
     }
 
     modifier onlyAdmin() {
@@ -17,11 +39,19 @@ contract Roles {
         _;
     }
 
-    function addAdmin(address _address) external onlyAdmin {
+    function setCTO(address _address) external onlyCEO {
+        cto = _address;
+    }
+
+    function setCFO(address _address) external onlyCEO {
+        cfo = _address;
+    }
+
+    function addAdmin(address _address) external onlyCEO {
         admins[_address] = true;
     }
 
-    function removeAdmin(address _address) external onlyAdmin {
+    function removeAdmin(address _address) external onlyCEO {
         admins[_address] = false;
     }
 }
