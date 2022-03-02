@@ -4,26 +4,27 @@ pragma solidity >=0.8.0 <0.9.0;
 import "./Roles.sol";
 
 contract MultiSigWallet {
-    // event SubmitRequest(address caller, bytes32 requestId);
-    // event SignRequest(address caller);
-    // event RevokeSignature();
-
     mapping(address => bool) owners;
-    uint256 lastRequestId = 0;
+    uint256 private nextRequestId = 0;
     uint256 public confirmationsRequired;
 
     struct Request {
         address to;
         bool executed;
-        uint256 numberOfConfirmations;
+        uint16 numberOfConfirmations;
         uint256 value;
         bytes data;
     }
+
     mapping(uint256 => Request) requests;
     // mapping from requestId -> address -> bool
     mapping(uint256 => mapping(address => bool)) public requestConfirmed;
 
     receive() external payable {}
+
+    /*///////////////////////////////////////////////////////////////
+                                MODIFIERS
+    ///////////////////////////////////////////////////////////////*/
 
     modifier onlyOwner() {
         require(owners[msg.sender] == true, "Only owner allowed");
@@ -31,7 +32,7 @@ contract MultiSigWallet {
     }
 
     modifier requestExists(uint256 _requestId) {
-        require(_requestId <= lastRequestId - 1, "Request doesn't exist");
+        require(_requestId <= nextRequestId - 1, "Request doesn't exist");
         _;
     }
 
@@ -47,6 +48,17 @@ contract MultiSigWallet {
         _;
     }
 
+    /*///////////////////////////////////////////////////////////////
+                                EVENTS
+    ///////////////////////////////////////////////////////////////*/
+    event RequestSubmitted(uint256 indexed requestId);
+    event SignRequest(uint256 indexed requestId);
+    event RevokeSignature(uint256 indexed requestId);
+
+    /*///////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    ///////////////////////////////////////////////////////////////*/
+
     constructor(address[] memory _owners, uint256 _numConfirmations) {
         require(_owners.length > 0, "Must specify owners");
         require(
@@ -54,7 +66,7 @@ contract MultiSigWallet {
             "Max confirmations exceeded"
         );
         confirmationsRequired = _numConfirmations;
-        for (uint256 i = 0; i < _owners.length; ++i) {
+        for (uint8 i = 0; i < _owners.length; ++i) {
             address owner = _owners[i];
             require(owner != address(0), "Invalid address");
             require(owners[owner] == false, "Duplicates not allowed");
@@ -68,20 +80,36 @@ contract MultiSigWallet {
         uint256 _value,
         bytes calldata _data
     ) public onlyOwner {
-        requests[lastRequestId] = Request(_to, false, 0, _value, _data);
-        lastRequestId++;
+        requests[nextRequestId] = Request(_to, false, 0, _value, _data);
+        emit RequestSubmitted(nextRequestId);
+        nextRequestId++;
     }
 
-    function confirm(uint256 _id)
-        public
+    function _confirm(uint256 _id, bool favor)
+        private
         onlyOwner
         requestExists(_id)
         notExecuted(_id)
-        notConfirmed(_id)
     {
         Request memory req = requests[_id];
-        req.numberOfConfirmations++;
-        requestConfirmed[_id][msg.sender] = true;
+        if (favor) {
+            req.numberOfConfirmations++;
+            requestConfirmed[_id][msg.sender] = true;
+        } else {
+            require(requestConfirmed[_id][msg.sender], "Nothing to revoke");
+            req.numberOfConfirmations--;
+            requestConfirmed[_id][msg.sender] = false;
+        }
+    }
+
+    function confirm(uint256 _id) public notConfirmed(_id) {
+        _confirm(_id, true);
+        emit SignRequest(_id);
+    }
+
+    function revokeConfirmation(uint256 _id) public {
+        _confirm(_id, false);
+        emit RevokeSignature(_id);
     }
 
     function execute(uint256 _id)
@@ -95,6 +123,7 @@ contract MultiSigWallet {
             req.numberOfConfirmations >= confirmationsRequired,
             "Cannot execute request"
         );
+        require(req.executed == false, "Request already executed");
         req.executed = true;
         (bool success, ) = req.to.call{value: req.value}(req.data);
         require(success, "Request failed");
