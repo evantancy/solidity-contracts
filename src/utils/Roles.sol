@@ -46,6 +46,14 @@ contract Roles {
         _;
     }
 
+    modifier onlyNonUpper() {
+        require(msg.sender != ceo);
+        require(msg.sender != cfo);
+        require(msg.sender != cto);
+        require(!admins[msg.sender]);
+        _;
+    }
+
     modifier onlyAdmin() {
         require(admins[msg.sender], "Caller is not admin");
         _;
