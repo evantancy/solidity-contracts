@@ -84,7 +84,6 @@ contract RandomWords is ERC721A {
     constructor() ERC721A("Random Words", "RW") {}
 
     function mint(uint256 _quantity) public {
-        require(_quantity > 0, "Mint: quantity must be > 0");
         require(_quantity <= MAX_TX, "Mint: quantity above MAX_TX");
         require(
             _currentIndex + _quantity + 1 <= MAX_SUPPLY,
