@@ -17,7 +17,7 @@ contract RandomWordsTest is DSTest {
     VM constant vm =
         VM(address(bytes20(uint160(uint256(keccak256(("hevm cheat code")))))));
     address who = 0x5C2C4de7C947dEE988A4471D0270ECbaee92a961;
-    uint16 max_tx;
+    uint256 max_tx;
 
     function setUp() public {
         rwContract = new RandomWords();
@@ -26,7 +26,7 @@ contract RandomWordsTest is DSTest {
     }
 
     function testInitialSupply() public {
-        assertEq(rwContract.currentSupply(), 0);
+        assertEq(rwContract.totalSupply(), 0);
     }
 
     function testFailMint0() public {
@@ -35,13 +35,13 @@ contract RandomWordsTest is DSTest {
 
     function testMint1() public {
         rwContract.mint(1);
-        assertEq(rwContract.currentSupply(), 1);
+        assertEq(rwContract.totalSupply(), 1);
         assertEq(rwContract.balanceOf(who), 1);
     }
 
     function testMintMAX_TX() public {
         rwContract.mint(max_tx);
-        assertEq(rwContract.currentSupply(), max_tx);
+        assertEq(rwContract.totalSupply(), max_tx);
     }
 
     function testFailMintMAX_TX() public {
@@ -49,7 +49,7 @@ contract RandomWordsTest is DSTest {
     }
 
     function testMintMAX_HOLD() public {
-        uint16 quantity = rwContract.MAX_HOLD();
+        uint256 quantity = rwContract.MAX_HOLD();
         while (quantity > 0) {
             if (quantity >= max_tx) {
                 rwContract.mint(max_tx);
@@ -59,11 +59,11 @@ contract RandomWordsTest is DSTest {
                 quantity -= quantity;
             }
         }
-        assertEq(rwContract.currentSupply(), rwContract.MAX_HOLD());
+        assertEq(rwContract.totalSupply(), rwContract.MAX_HOLD());
     }
 
     function testFailMintMAX_HOLD() public {
-        for (uint8 i = 0; i < 8; ++i) {
+        for (uint256 i = 0; i < 8; ++i) {
             rwContract.mint(max_tx);
         }
     }

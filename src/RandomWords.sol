@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "chiru-labs/ERC721A/ERC721A.sol";
 import "base64-sol/base64.sol";
 import "./utils/Strings.sol";
 
-contract RandomWords is ERC721 {
+contract RandomWords is ERC721A {
     using Strings8 for uint8;
     using Strings16 for uint16;
 
-    uint16 public MAX_SUPPLY = 6666;
-    uint16 public MAX_HOLD = 333;
-    uint8 public MAX_TX = 50;
-    uint16 private nextTokenId = 0;
-    uint16 public currentSupply = 0;
+    uint256 public MAX_SUPPLY = 6666;
+    uint256 public MAX_HOLD = 333;
+    uint256 public MAX_TX = 50;
 
     struct Words {
         string first;
@@ -83,24 +81,20 @@ contract RandomWords is ERC721 {
         [33, 47, 61]
     ];
 
-    constructor() ERC721("Random Words", "RW") {}
+    constructor() ERC721A("Random Words", "RW") {}
 
-    function mint(uint16 _quantity) public {
+    function mint(uint256 _quantity) public {
         require(_quantity > 0, "Mint: quantity must be > 0");
         require(_quantity <= MAX_TX, "Mint: quantity above MAX_TX");
         require(
-            nextTokenId + _quantity + 1 <= MAX_SUPPLY,
+            _currentIndex + _quantity + 1 <= MAX_SUPPLY,
             "Mint: quantity exceeds MAX_SUPPLY"
         );
         require(
-            uint16(balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
+            (balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
             "Mint: Each holder can only hold 333"
         );
-        for (uint16 i = 0; i < _quantity; ++i) {
-            _safeMint(msg.sender, nextTokenId);
-            nextTokenId++;
-            currentSupply++;
-        }
+        _safeMint(msg.sender, _quantity);
     }
 
     function _createRandom(uint16 _tokenId)
