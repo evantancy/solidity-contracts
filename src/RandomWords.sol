@@ -13,11 +13,14 @@ contract RandomWords is ERC721A {
     uint256 public MAX_HOLD = 333;
     uint256 public MAX_TX = 50;
 
+    mapping(uint256 => Words) words;
+
+    /// @dev store only trait index
     struct Words {
-        string first;
-        string second;
-        string third;
-        uint8[3] bgColor;
+        uint8 first;
+        uint8 second;
+        uint8 third;
+        uint8 bgColor;
     }
 
     string[] private firstWords = [
@@ -93,10 +96,23 @@ contract RandomWords is ERC721A {
             (balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
             "Mint: Each holder can only hold 333"
         );
+        uint256 tokenId = _currentIndex;
         _safeMint(msg.sender, _quantity);
+
+        /// @dev store data on-chain
+        for (uint256 i = 0; i < _quantity; ++i) {
+            uint8[4] memory tokenData = _createRandom(tokenId + i);
+
+            words[tokenId + i] = Words(
+                tokenData[0],
+                tokenData[1],
+                tokenData[2],
+                tokenData[3]
+            );
+        }
     }
 
-    function _createRandom(uint16 _tokenId)
+    function _createRandom(uint256 _tokenId)
         private
         view
         returns (uint8[4] memory)
@@ -114,34 +130,21 @@ contract RandomWords is ERC721A {
         return randomIndices;
     }
 
-    function _getWords(uint8[4] memory _indices)
-        private
-        view
-        returns (Words memory)
-    {
-        return
-            Words(
-                firstWords[_indices[0]],
-                secondWords[_indices[1]],
-                thirdWords[_indices[2]],
-                bgColors[_indices[3]]
-            );
-    }
-
     function _createSvg(Words memory _words)
         private
-        pure
+        view
         returns (string memory)
     {
+        uint8[3] memory bgColor = bgColors[_words.bgColor];
         /// @dev split SVG generation into 2 to avoid 'stack too deep' error
         string memory svg = string(
             abi.encodePacked(
                 '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="rgba(',
-                _words.bgColor[0].toString(),
+                bgColor[0].toString(),
                 ",",
-                _words.bgColor[1].toString(),
+                bgColor[1].toString(),
                 ",",
-                _words.bgColor[2].toString(),
+                bgColor[2].toString(),
                 ',1.0)"/>'
             )
         );
@@ -150,47 +153,16 @@ contract RandomWords is ERC721A {
             abi.encodePacked(
                 svg,
                 '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                _words.first,
+                firstWords[_words.first],
                 " ",
-                _words.second,
+                secondWords[_words.second],
                 " ",
-                _words.third,
+                thirdWords[_words.third],
                 "</text></svg>"
             )
         );
 
         return svg;
-    }
-
-    function _createFullMetadata(uint16 _tokenId)
-        private
-        view
-        returns (string memory)
-    {
-        Words memory words = _getWords(_createRandom(_tokenId));
-        string memory svg = _createSvg(words);
-        string memory metadata;
-
-        metadata = string(
-            abi.encodePacked(
-                "data:application/json;base64,",
-                Base64.encode(
-                    bytes(
-                        string(
-                            abi.encodePacked(
-                                '{"name": "Random Words #',
-                                Strings.toString(_tokenId),
-                                '", "image": "data:image/svg+xml;base64,',
-                                Base64.encode(bytes(svg)),
-                                '"}'
-                            )
-                        )
-                    )
-                )
-            )
-        );
-
-        return metadata;
     }
 
     function tokenURI(uint256 _tokenId)
@@ -201,6 +173,27 @@ contract RandomWords is ERC721A {
     {
         require(_exists(_tokenId));
 
-        return _createFullMetadata(uint16(_tokenId));
+        Words memory word = words[_tokenId];
+        string memory svg = _createSvg(word);
+
+        return
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        bytes(
+                            string(
+                                abi.encodePacked(
+                                    '{"name": "Random Words #',
+                                    Strings.toString(_tokenId),
+                                    '", "image": "data:image/svg+xml;base64,',
+                                    Base64.encode(bytes(svg)),
+                                    '"}'
+                                )
+                            )
+                        )
+                    )
+                )
+            );
     }
 }
