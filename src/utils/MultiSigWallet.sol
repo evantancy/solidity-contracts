@@ -5,7 +5,7 @@ import "./Roles.sol";
 
 contract MultiSigWallet {
     mapping(address => bool) owners;
-    uint256 private nextRequestId = 0;
+    uint256 private nextRequestId;
     uint256 public confirmationsRequired;
 
     struct Request {
@@ -17,7 +17,7 @@ contract MultiSigWallet {
     }
 
     mapping(uint256 => Request) requests;
-    // mapping from requestId -> address -> bool
+    // Mapping from requestId -> address -> bool
     mapping(uint256 => mapping(address => bool)) public requestConfirmed;
 
     receive() external payable {}
@@ -69,7 +69,7 @@ contract MultiSigWallet {
         for (uint8 i = 0; i < _owners.length; ++i) {
             address owner = _owners[i];
             require(owner != address(0), "Invalid address");
-            require(owners[owner] == false, "Duplicates not allowed");
+            // require(owners[owner] == false, "Duplicates not allowed");
 
             owners[owner] = true;
         }
@@ -85,19 +85,18 @@ contract MultiSigWallet {
         nextRequestId++;
     }
 
-    function _confirm(uint256 _id, bool favor)
+    function _confirm(uint256 _id, bool _favor)
         private
         onlyOwner
         requestExists(_id)
         notExecuted(_id)
     {
-        Request memory req = requests[_id];
-        if (favor) {
-            req.numberOfConfirmations++;
+        if (_favor) {
+            requests[_id].numberOfConfirmations++;
             requestConfirmed[_id][msg.sender] = true;
         } else {
             require(requestConfirmed[_id][msg.sender], "Nothing to revoke");
-            req.numberOfConfirmations--;
+            requests[_id].numberOfConfirmations--;
             requestConfirmed[_id][msg.sender] = false;
         }
     }
