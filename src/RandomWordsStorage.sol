@@ -7,21 +7,20 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "base64-sol/base64.sol";
 import "./utils/Strings.sol";
 
-contract RandomWordsV2 is ERC721URIStorage {
+contract RandomWordsStorage is ERC721URIStorage {
     using Strings8 for uint8;
     using Strings16 for uint16;
 
     uint16 public MAX_SUPPLY = 6666;
     uint16 public MAX_HOLD = 333;
     uint8 public MAX_TX = 50;
-    uint16 private nextTokenId = 0;
-    uint16 public currentSupply = 0;
+    uint256 private _currentIndex = 0;
 
     struct Words {
-        string first;
-        string second;
-        string third;
-        uint8[3] bgColor;
+        uint8 first;
+        uint8 second;
+        uint8 third;
+        uint8 bgColor;
     }
 
     string[] private firstWords = [
@@ -87,26 +86,30 @@ contract RandomWordsV2 is ERC721URIStorage {
 
     constructor() ERC721("Random Words", "RW") {}
 
-    function mint(uint16 _quantity) public {
-        require(_quantity > 0, "Mint: quantity must be > 0");
+    function mint(uint256 _quantity) public {
         require(_quantity <= MAX_TX, "Mint: quantity above MAX_TX");
         require(
-            nextTokenId + _quantity + 1 <= MAX_SUPPLY,
+            _currentIndex + _quantity + 1 <= MAX_SUPPLY,
             "Mint: quantity exceeds MAX_SUPPLY"
         );
         require(
-            uint16(balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
+            (balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
             "Mint: Each holder can only hold 333"
         );
-        for (uint16 i = 0; i < _quantity; ++i) {
-            _safeMint(msg.sender, nextTokenId);
-            _setTokenURI(nextTokenId, _createFullMetadata(nextTokenId));
-            nextTokenId++;
-            currentSupply++;
+
+        uint256 startTokenId = _currentIndex;
+
+        /// @dev store data on-chain
+        for (uint256 i = 0; i < _quantity; ++i) {
+            uint256 tokenId = startTokenId + i;
+            _safeMint(msg.sender, tokenId);
+            string memory tokenUri = createTokenURI(tokenId);
+            _setTokenURI(tokenId, tokenUri);
         }
+        if (_quantity > 0) _currentIndex += _quantity;
     }
 
-    function _createRandom(uint16 _tokenId)
+    function _createRandom(uint256 _tokenId)
         private
         view
         returns (uint8[4] memory)
@@ -124,34 +127,21 @@ contract RandomWordsV2 is ERC721URIStorage {
         return randomIndices;
     }
 
-    function _getWords(uint8[4] memory _indices)
-        private
-        view
-        returns (Words memory)
-    {
-        return
-            Words(
-                firstWords[_indices[0]],
-                secondWords[_indices[1]],
-                thirdWords[_indices[2]],
-                bgColors[_indices[3]]
-            );
-    }
-
     function _createSvg(Words memory _words)
         private
-        pure
+        view
         returns (string memory)
     {
+        uint8[3] memory bgColor = bgColors[_words.bgColor];
         /// @dev split SVG generation into 2 to avoid 'stack too deep' error
         string memory svg = string(
             abi.encodePacked(
                 '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="rgba(',
-                _words.bgColor[0].toString(),
+                bgColor[0].toString(),
                 ",",
-                _words.bgColor[1].toString(),
+                bgColor[1].toString(),
                 ",",
-                _words.bgColor[2].toString(),
+                bgColor[2].toString(),
                 ',1.0)"/>'
             )
         );
@@ -160,11 +150,11 @@ contract RandomWordsV2 is ERC721URIStorage {
             abi.encodePacked(
                 svg,
                 '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                _words.first,
+                firstWords[_words.first],
                 " ",
-                _words.second,
+                secondWords[_words.second],
                 " ",
-                _words.third,
+                thirdWords[_words.third],
                 "</text></svg>"
             )
         );
@@ -172,34 +162,39 @@ contract RandomWordsV2 is ERC721URIStorage {
         return svg;
     }
 
-    function _createFullMetadata(uint16 _tokenId)
-        private
+    function createTokenURI(uint256 _tokenId)
+        public
         view
         returns (string memory)
     {
-        Words memory words = _getWords(_createRandom(_tokenId));
-        string memory svg = _createSvg(words);
-        string memory metadata;
+        require(_exists(_tokenId));
+        uint8[4] memory indices = _createRandom(_tokenId);
+        Words memory word = Words(
+            indices[0],
+            indices[1],
+            indices[2],
+            indices[3]
+        );
+        string memory svg = _createSvg(word);
 
-        metadata = string(
-            abi.encodePacked(
-                "data:application/json;base64,",
-                Base64.encode(
-                    bytes(
-                        string(
-                            abi.encodePacked(
-                                '{"name": "Random Words #',
-                                Strings.toString(_tokenId),
-                                '", "image": "data:image/svg+xml;base64,',
-                                Base64.encode(bytes(svg)),
-                                '"}'
+        return
+            string(
+                abi.encodePacked(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        bytes(
+                            string(
+                                abi.encodePacked(
+                                    '{"name": "Random Words #',
+                                    Strings.toString(_tokenId),
+                                    '", "image": "data:image/svg+xml;base64,',
+                                    Base64.encode(bytes(svg)),
+                                    '"}'
+                                )
                             )
                         )
                     )
                 )
-            )
-        );
-
-        return metadata;
+            );
     }
 }

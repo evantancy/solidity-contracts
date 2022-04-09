@@ -5,7 +5,7 @@ import "chiru-labs/ERC721A/ERC721A.sol";
 import "base64-sol/base64.sol";
 import "./utils/Strings.sol";
 
-contract RandomWords is ERC721A {
+contract RandomWordsERC721A is ERC721A {
     using Strings8 for uint8;
     using Strings16 for uint16;
 
