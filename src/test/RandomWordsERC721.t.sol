@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import "ds-test/test.sol";
+import "../utils/People.sol";
 import "../RandomWordsERC721.sol";
 
 interface VM {
@@ -14,28 +15,25 @@ interface VM {
 
 contract RandomWordsERC721Test is DSTest {
     RandomWordsERC721 rwContract;
-    VM constant vm =
-        VM(address(bytes20(uint160(uint256(keccak256(("hevm cheat code")))))));
+    VM constant vm = VM(HEVM_ADDRESS);
     address who = 0x5C2C4de7C947dEE988A4471D0270ECbaee92a961;
     uint256 max_tx;
 
     function setUp() public {
         rwContract = new RandomWordsERC721();
-        max_tx = rwContract.MAX_TX();
         vm.startPrank(who);
     }
 
-    function test_Mint_1() public {
+    function testMint1() public {
         rwContract.mint(1);
-        assertEq(rwContract.balanceOf(who), 1);
     }
 
-    function test_Mint_5() public {
+    function testMint5() public {
         rwContract.mint(5);
-        assertEq(rwContract.balanceOf(who), 5);
     }
 
-    function testFail_Mint_MaxTx() public {
+    function testFailMintMaxTx() public {
+        max_tx = rwContract.MAX_TX();
         rwContract.mint(max_tx + 1);
     }
 }

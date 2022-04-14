@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "ds-test/test.sol";
+import "../utils/People.sol";
 import "../utils/MultiSigWallet.sol";
 
 interface VM {
@@ -16,22 +17,13 @@ interface VM {
     function deal(address, uint256) external;
 }
 
-contract MultiSigWalletTest is DSTest {
+contract MultiSigWalletTest is DSTest, People {
     MultiSigWallet msw;
     address[] addyArr;
-    address public alice = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
-    address public bob = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
-    address public charlie = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db;
-    address public david = 0x5C2C4de7C947dEE988A4471D0270ECbaee92a961;
-
-    VM constant vm =
-        VM(address(bytes20(uint160(uint256(keccak256(("hevm cheat code")))))));
+    VM constant vm = VM(HEVM_ADDRESS);
 
     function setUp() public {
-        addyArr.push(alice);
-        addyArr.push(bob);
-        addyArr.push(charlie);
-        addyArr.push(david);
+        addyArr = [alice, bob, charlie, david];
         msw = new MultiSigWallet(addyArr, 2);
 
         vm.deal(address(msw), 10 ether);
