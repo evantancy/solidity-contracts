@@ -37,28 +37,24 @@ contract MultiSigWalletTest is DSTest {
         vm.deal(address(msw), 10 ether);
     }
 
-    function testFail_Withdraw() public {
+    function testFailWithdraw() public {
         vm.startPrank(alice);
         msw.addRequest(alice, 10 ether, "");
         uint256 requestId = 0;
         msw.confirm(requestId);
-        emit log_uint(msw.getNumberOfConfirmations(requestId));
         msw.execute(requestId);
     }
 
-    function test_Withdraw() public {
-        uint256 requestId = 0;
-
+    function testWithdraw() public {
         vm.startPrank(alice);
         msw.addRequest(alice, 10 ether, "");
+        uint256 requestId = 0;
         msw.confirm(requestId);
         vm.stopPrank();
 
-        emit log_uint(msw.getNumberOfConfirmations(requestId));
         vm.prank(bob);
         msw.confirm(requestId);
 
-        emit log_uint(msw.getNumberOfConfirmations(requestId));
         vm.prank(alice);
         msw.execute(requestId);
     }
