@@ -7,13 +7,12 @@ import "base64-sol/base64.sol";
 import "./utils/Strings.sol";
 import "./utils/Roles.sol";
 
-contract RandomWordsERC721A is ERC721A {
+contract RandomWordsNFT is ERC721A {
     using Strings8 for uint8;
     using Strings16 for uint16;
 
     uint256 public MAX_SUPPLY = 6666;
-    uint256 public MAX_HOLD = 333;
-    uint256 public MAX_TX = 50;
+    uint256 public MAX_TX = 2;
 
     bytes32 public merkleRoot = 0x9768aa6e0c67338e4ad28454c6843cfcd2ec70932069fd97f3da210ed16e46ad;
     address public owner;
@@ -114,7 +113,7 @@ contract RandomWordsERC721A is ERC721A {
     {
         require(presaleActive, "Presale not active");
         require(!whitelistClaimed[msg.sender], "Already claimed");
-        bytes32 leaf = keccak256(abi.encode(msg.sender));
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
         require(
             MerkleProof.verify(_merkleProof, merkleRoot, leaf),
             "Invalid proof"
@@ -133,10 +132,6 @@ contract RandomWordsERC721A is ERC721A {
         require(
             _currentIndex + _quantity + 1 <= MAX_SUPPLY,
             "Mint: quantity exceeds MAX_SUPPLY"
-        );
-        require(
-            (balanceOf(msg.sender)) + _quantity <= MAX_HOLD,
-            "Mint: Each holder can only hold 333"
         );
         uint256 tokenId = _currentIndex;
         _safeMint(msg.sender, _quantity);
